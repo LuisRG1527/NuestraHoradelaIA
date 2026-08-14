@@ -1,9 +1,12 @@
-# Lotería de la IA · V6
+# Lotería de la IA · V7
 
-- Las imágenes son la fuente de verdad de cada carta: ya incluyen número e ilustración y el nombre correcto.
-- Se eliminó el texto inferior que se superponía a las cartas.
-- Se eliminó la galería de las 54 cartas de la página.
-- Se mantiene el Top players a la izquierda del anfitrión.
-- La única forma de ganar es completar las 16 casillas.
-- La carta 30 (El Café) fue limpiada para quitar la referencia de marca del vaso.
-- Títulos: Georgia Bold. Textos: Lato.
+- Cartas servidas como PNG externos de alta resolución para evitar el HTML de 17 MB y problemas de renderizado.
+- El tablero del jugador permanece tapado hasta que el anfitrión pulsa **Iniciar juego**.
+- El anfitrión no muestra ninguna carta al entrar. Solo aparece una pantalla de espera.
+- Las cartas solo se pueden cantar después de iniciar.
+- Sala con nombre/código grande y QR.
+- El QR apunta a `https://luisrg1527.github.io/NuestraHoradelaIA/?sala=IA-XXXX`.
+- Al entrar por QR, el código queda prellenado.
+- El campo de código del jugador inicia con `IA-`.
+- Se mantiene Top Players y progreso en tiempo real.
+- La única forma de ganar es completar 16/16.
