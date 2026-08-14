@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lotería de la IA</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--ink:#201a17;--paper:#fff8ed;--red:#d9362b;--green:#087f5b;--gold:#f4c542;--blue:#2767d8}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top,#fffdf7,#f3e6cf);color:var(--ink)}
+button,input{font:inherit}.wrap{max-width:1100px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.logo{font-weight:900;font-size:clamp(25px,4vw,44px);letter-spacing:-2px}.tag{font-weight:700;color:var(--red)}
+.card{background:rgba(255,255,255,.84);border:2px solid #2a211d;border-radius:24px;box-shadow:0 10px 30px rgba(60,35,15,.12);padding:24px;margin-top:20px}
+h1,h2,p{margin-top:0}.actions{display:flex;flex-wrap:wrap;gap:10px}.btn{border:2px solid var(--ink);border-radius:14px;padding:12px 18px;font-weight:850;cursor:pointer;background:#fff}.btn.primary{background:var(--red);color:white}.btn.green{background:var(--green);color:white}.btn:disabled{opacity:.45;cursor:not-allowed}
+input{border:2px solid var(--ink);border-radius:14px;padding:12px 14px;width:100%;background:white}.row{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tile{position:relative;aspect-ratio:1/1;border:2px solid var(--ink);border-radius:15px;background:var(--paper);display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-weight:900;cursor:pointer;transition:.15s;overflow:hidden}.tile small{display:block;font-weight:700;font-size:11px;margin-top:4px}.tile.marked{background:var(--gold);transform:translateY(-2px);box-shadow:0 5px 0 var(--ink)}.tile.marked:after{content:"✓";position:absolute;right:6px;top:3px;font-size:22px;color:var(--red)}
+.playgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}.bigcard{min-height:340px;border:3px solid var(--ink);border-radius:28px;background:linear-gradient(145deg,#fff,#f9e8c5);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}.emoji{font-size:80px}.bigname{font-size:clamp(30px,5vw,60px);font-weight:950;letter-spacing:-2px}.phrase{font-size:18px;font-weight:700;max-width:600px}.status{padding:12px 15px;border-radius:12px;background:#f5ead7;font-weight:800;margin:12px 0}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#e7f5ef;color:#075f46;font-weight:900;font-size:12px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:13px 18px;border-radius:999px;font-weight:800;display:none;z-index:5}.toast.show{display:block}
+.winner{position:fixed;inset:0;background:rgba(20,12,8,.78);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}.winner .box{background:#fff8ed;border:3px solid var(--ink);border-radius:30px;padding:40px;text-align:center;max-width:600px}.winner h2{font-size:54px;margin-bottom:8px}
+@media(max-width:800px){.playgrid,.row{grid-template-columns:1fr}.grid{grid-template-columns:repeat(4,1fr);gap:7px}.tile{font-size:12px}.tile small{font-size:9px}.wrap{padding:14px}.card{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="logo">🎴 LOTERÍA DE LA IA</div><div class="tag">La suerte está echada. El prompt también.</div></div>
+    <div id="modePill" class="pill">MODO INICIO</div>
+  </div>
+
+  <section id="home" class="card">
+    <h1>Elige cómo vas a jugar</h1>
+    <p>La dinámica está pensada para que <b>cada jugador marque su propia carta</b>. Si la carta sale y no la marcas, no cuenta. Si completas tu tablero primero, grita: <b>¡LOTERÍA!</b> 🎉</p>
+    <div class="row">
+      <button class="btn primary" onclick="show('host')">🎤 Soy anfitrión</button>
+      <button class="btn green" onclick="show('join')">📱 Quiero jugar</button>
+    </div>
+    <div class="status">💡 Para jugar desde varios dispositivos, el anfitrión crea una sala y comparte el código. No hace falta crear cuentas.</div>
+  </section>
+
+  <section id="host" class="card hidden">
+    <h2>🎤 Crear partida</h2>
+    <p>Abre esta pantalla en la computadora que compartirás en la sesión.</p>
+    <div class="actions">
+      <button class="btn primary" onclick="createRoom()">Crear sala</button>
+      <button class="btn" onclick="show('home')">Volver</button>
+    </div>
+    <div id="hostRoom" class="status hidden"></div>
+    <div id="hostArea" class="hidden">
+      <div class="playgrid">
+        <div>
+          <div class="bigcard" id="drawCard">
+            <div class="emoji">🎴</div><div class="bigname">LISTOS</div><div class="phrase">Cuando todos estén dentro, saca la primera carta.</div>
+          </div>
+          <div class="actions" style="margin-top:12px">
+            <button class="btn primary" id="drawBtn" onclick="drawNext()" disabled>🎴 Sacar carta</button>
+            <button class="btn" onclick="resetHost()">↻ Reiniciar</button>
+          </div>
+        </div>
+        <div>
+          <div class="status">Jugadores conectados: <b id="playerCount">0</b></div>
+          <div id="players"></div>
+          <div class="status">Cartas restantes: <b id="remaining">36</b></div>
+          <p style="font-size:13px">Cada vez que sacas una carta, todos los celulares reciben la misma carta. Cada jugador decide si la marca en su tablero.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="join" class="card hidden">
+    <h2>📱 Entrar a una partida</h2>
+    <p>Escribe tu nombre y el código que te dé el anfitrión.</p>
+    <div class="row">
+      <div><label>Tu nombre</label><input id="playerName" placeholder="Ej. Luis"></div>
+      <div><label>Código de sala</label><input id="roomCode" placeholder="Ej. IA-4821" style="text-transform:uppercase"></div>
+    </div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn green" onclick="joinRoom()">Entrar a la sala</button>
+      <button class="btn" onclick="show('home')">Volver</button>
+    </div>
+    <div id="joinStatus" class="status hidden"></div>
+  </section>
+
+  <section id="player" class="card hidden">
+    <div class="top">
+      <div><h2 style="margin-bottom:3px">🎴 Tu tablero</h2><div id="playerWelcome"></div></div>
+      <span class="pill">MARCA TÚ MISMO</span>
+    </div>
+    <div class="status" id="playerStatus">Esperando la primera carta…</div>
+    <div class="grid" id="board"></div>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn primary" onclick="claimLottery()">🎉 ¡LOTERÍA!</button>
+    </div>
+    <p style="margin:12px 0 0;font-size:13px">Regla clave: si una carta salió y no la marcaste, <b>no cuenta</b>. No hay botón mágico para corregirlo. 👀</p>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="winner" class="winner hidden"><div class="box"><div class="emoji">🏆</div><h2>¡LOTERÍA!</h2><p id="winnerText"></p><button class="btn primary" onclick="closeWinner()">Seguir jugando</button></div></div>
+
+<script>
+const CARDS=[
+["El Prompt","🧠","El que pide poquito y espera que la IA adivine todo."],
+["El ChatGPT","🤖","Tu copiloto para pensar, crear y resolver."],
+["La Skill","⚡","Una capacidad especializada para hacer más que chatear."],
+["El Canvas","🎨","Donde una idea empieza a tomar forma."],
+["El Gemini","🔮","La otra mente del juego."],
+["El Resumidor","📚","De 30 páginas a lo que realmente importa."],
+["El Analista","📊","Yo veo patrones donde tú ves una Excel infernal."],
+["El Creativo","💡","Dame 20 ideas. No, otras 20."],
+["El Traductor","🌎","Del corporativo al humano."],
+["El Correo","✉️","El mensaje que llevas 40 minutos evitando."],
+["La Presentación","🖥️","Mañana es la junta. Hoy es el día."],
+["El Documento","📄","Ese archivo que nadie quiere leer completo."],
+["El Excel Infernal","🫠","Filas, columnas y sufrimiento."],
+["El Insight","🔎","La respuesta escondida entre los datos."],
+["La Alucinación","💀","Yo tampoco sé de dónde salió ese dato."],
+["El Urgente","🚨","Lo necesito para hace 20 minutos."],
+["El Copiar y Pegar","📋","Lo mandé tal cual. ¿Qué podría salir mal?" ],
+["El WOW","🤯","¿La IA puede hacer eso?" ],
+["El Prompt Mágico","🪄","Actúa como experto… y cruzamos los dedos."],
+["El Contexto","🧩","Cuéntame un poco más antes de que improvise."],
+["La Idea","✨","Ya la tengo. Ahora ayúdame a aterrizarla."],
+["El Investigador","🕵️","Déjame encontrar qué está pasando."],
+["El Programador","💻","No necesitas saber código para pedirme código."],
+["El Checklist","✅","Que no se nos olvide nada."],
+["El Brainstorm","🌪️","Una idea lleva a otra y otra y otra…"],
+["El Planificador","🗓️","Hagamos que esto deje de vivir en tu cabeza."],
+["El Editor","✂️","Menos palabras. Más punch."],
+["El Jefe","🧑‍💼","“Hazlo más estratégico.”"],
+["La Junta","🎙️","Dos horas que pudieron ser un resumen."],
+["El Deadline","⏰","No era para hoy… hasta que fue para hoy."],
+["La Automatización","⚙️","Hazlo una vez. Después deja que fluya."],
+["El Experimento","🧪","Probemos y vemos qué pasa."],
+["La Pregunta","❓","No hay preguntas tontas. Hay prompts flojitos."],
+["El Filtro","🧹","Quédate con lo que sí importa."],
+["El Storyteller","📖","Los datos también necesitan una historia."],
+["El Resultado","🏆","Cuando la IA deja de ser truco y se vuelve herramienta."]
+];
+
+let state={peer:null,conn:null,room:null,board:[],drawn:[],players:{},name:"",isHost:false};
+
+function show(id){["home","host","join","player"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));document.getElementById("modePill").textContent=id==="host"?"MODO ANFITRIÓN":id==="player"?"MODO JUGADOR":"MODO INICIO";}
+
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2200)}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function code(){return "IA-"+Math.floor(1000+Math.random()*9000)}
+
+function createRoom(){
+ state.isHost=true; state.room=code();
+ state.peer=new Peer(state.room);
+ state.peer.on("open",()=>{document.getElementById("hostRoom").textContent="Código de sala: "+state.room+"  |  Compártelo con los jugadores";document.getElementById("hostRoom").classList.remove("hidden");document.getElementById("hostArea").classList.remove("hidden");document.getElementById("drawBtn").disabled=false;show("host");});
+ state.peer.on("connection",c=>{
+   c.on("open",()=>{state.players[c.peer]={conn:c,name:"Jugador"};updatePlayers(); c.send({type:"welcome",cards:CARDS,drawn:state.drawn});});
+   c.on("data",d=>handleHostData(c,d));
+ });
+ state.peer.on("error",e=>toast("No se pudo crear la sala: "+e.type));
+}
+
+function handleHostData(c,d){
+ if(d.type==="join"){state.players[c.peer].name=d.name||"Jugador";updatePlayers();broadcast({type:"players",names:Object.values(state.players).map(x=>x.name)});}
+ if(d.type==="claim"){if(d.valid){Object.values(state.players).find(x=>x.conn===c).claimed=true;broadcast({type:"winner",name:d.name});} else c.send({type:"invalid",missing:d.missing});updatePlayers();}
+}
+function broadcast(msg){Object.values(state.players).forEach(p=>{try{p.conn.send(msg)}catch(e){}})}
+function updatePlayers(){document.getElementById("playerCount").textContent=Object.keys(state.players).length;document.getElementById("players").innerHTML=Object.values(state.players).map(p=>`<div class="status">${p.claimed?"🏆 ":"🟢 "}${escapeHtml(p.name)}</div>`).join("");}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function drawNext(){
+ if(state.drawn.length>=CARDS.length)return toast("Ya no quedan cartas.");
+ const idx=shuffle(CARDS.map((_,i)=>i).filter(i=>!state.drawn.includes(i)))[0];state.drawn.push(idx);
+ renderBig(CARDS[idx]);document.getElementById("remaining").textContent=CARDS.length-state.drawn.length;
+ broadcast({type:"draw",idx});
+}
+function renderBig(card){document.getElementById("drawCard").innerHTML=`<div class="emoji">${card[1]}</div><div class="bigname">${card[0]}</div><div class="phrase">${card[2]}</div>`}
+
+function joinRoom(){
+ const name=document.getElementById("playerName").value.trim()||"Jugador";
+ const room=document.getElementById("roomCode").value.trim().toUpperCase();
+ if(!room)return toast("Escribe el código de sala.");
+ state.name=name;state.room=room;state.peer=new Peer();
+ document.getElementById("joinStatus").textContent="Conectando…";document.getElementById("joinStatus").classList.remove("hidden");
+ state.peer.on("open",()=>{state.conn=state.peer.connect(room);state.conn.on("open",()=>{state.conn.send({type:"join",name});document.getElementById("joinStatus").textContent="Conectado. Esperando al anfitrión…";});state.conn.on("data",handlePlayerData);});
+ state.peer.on("error",()=>{document.getElementById("joinStatus").textContent="No encontramos esa sala. Revisa el código.";});
+}
+function handlePlayerData(d){
+ if(d.type==="welcome"){state.board=shuffle([...Array(CARDS.length).keys()]).slice(0,16);renderBoard();show("player");document.getElementById("playerWelcome").textContent="Jugando como "+state.name;}
+ if(d.type==="draw"){state.drawn.push(d.idx);document.getElementById("playerStatus").textContent=`Salió: ${CARDS[d.idx][1]} ${CARDS[d.idx][0]} · ¡márcala si está en tu tablero!`;pulseTile(d.idx);}
+ if(d.type==="invalid"){toast("Todavía no es lotería. Te faltan: "+d.missing.join(", "));}
+ if(d.type==="winner"){document.getElementById("winnerText").textContent=d.name+" completó su tablero. ¡Partida en llamas!";document.getElementById("winner").classList.remove("hidden");}
+}
+function renderBoard(){
+ const el=document.getElementById("board");el.innerHTML="";
+ state.board.forEach(i=>{const d=document.createElement("div");d.className="tile";d.dataset.idx=i;d.innerHTML=`<div>${CARDS[i][1]}<br>${CARDS[i][0]}<small>${CARDS[i][2]}</small></div>`;d.onclick=()=>d.classList.toggle("marked");el.appendChild(d);});
+}
+function pulseTile(idx){const e=document.querySelector(`.tile[data-idx="${idx}"]`);if(e){e.animate([{transform:"scale(1)"},{transform:"scale(1.06)"},{transform:"scale(1)"}],{duration:500});e.style.outline="4px solid var(--red)";setTimeout(()=>e.style.outline="",1400);}}
+function claimLottery(){
+ const marked=[...document.querySelectorAll(".tile.marked")].map(e=>+e.dataset.idx);
+ const missing=state.board.filter(i=>!marked.includes(i)).map(i=>CARDS[i][0]);
+ if(missing.length===0){state.conn.send({type:"claim",name:state.name,valid:true});document.getElementById("winnerText").textContent="¡Eres el primero en cantar LOTERÍA! 🎉";document.getElementById("winner").classList.remove("hidden");}
+ else {state.conn.send({type:"claim",name:state.name,valid:false,missing});toast("Aún te faltan "+missing.length+" cartas.");}
+}
+function closeWinner(){document.getElementById("winner").classList.add("hidden")}
+function resetHost(){state.drawn=[];state.players={};location.reload()}
+</script>
+</body>
+</html>
