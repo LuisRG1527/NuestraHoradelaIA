@@ -1,12 +1,13 @@
-# Lotería de la IA · V8
+# Lotería de la IA · V9
 
-Cambios:
-- Las 54 cartas están embebidas dentro de `index.html` como imágenes WebP de alta calidad.
-  Esto evita que GitHub Pages deje las cartas en blanco por rutas relativas.
-- Se aplica un sharpening moderado a las cartas antes de integrarlas.
-- El QR genera una URL con `?modo=jugador&sala=IA-XXXX`.
-- Al abrir esa URL, la página entra directamente a la pantalla de jugador y deja la sala prellenada.
-- El campo de sala comienza con `IA-`.
-- No se muestra la baraja debajo de las páginas.
-- El jugador sigue teniendo sus cartas ocultas hasta que el anfitrión inicia.
-- La única forma de ganar es completar las 16 casillas.
+- Acceso de anfitrión protegido con contraseña: `HoraIA-BBVA`.
+- El ranking ahora se llama **Players**.
+- Solo se muestran las últimas 3 cartas cantadas.
+- El QR queda a un costado del código de sala para reducir la altura.
+- El QR abre directamente la pantalla de jugador y prellena la sala:
+  `?modo=jugador&sala=IA-XXXX`
+- El anfitrión debe pulsar **Iniciar juego** antes de cantar.
+- Las cartas del jugador permanecen bloqueadas hasta que son cantadas.
+- Si se intenta marcar una carta bloqueada, no se selecciona.
+- Tablero del jugador más compacto.
+- Las 54 cartas están embebidas en el HTML para evitar errores de rutas en GitHub Pages.
