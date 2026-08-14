@@ -17,6 +17,21 @@ input{border:2px solid var(--ink);border-radius:14px;padding:12px 14px;width:100
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:13px 18px;border-radius:999px;font-weight:800;display:none;z-index:5}.toast.show{display:block}
 .winner{position:fixed;inset:0;background:rgba(20,12,8,.78);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}.winner .box{background:#fff8ed;border:3px solid var(--ink);border-radius:30px;padding:40px;text-align:center;max-width:600px}.winner h2{font-size:54px;margin-bottom:8px}
 @media(max-width:800px){.playgrid,.row{grid-template-columns:1fr}.grid{grid-template-columns:repeat(4,1fr);gap:7px}.tile{font-size:12px}.tile small{font-size:9px}.wrap{padding:14px}.card{padding:16px}}
+
+@import url('https://fonts.googleapis.com/css2?family=Bree+Serif&family=Montserrat:wght@600;800;900&display=swap');
+body{font-family:Montserrat,system-ui,sans-serif;background:#efe0c1}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.12;background-image:radial-gradient(#5d321d 1px,transparent 1px);background-size:7px 7px}
+.logo{font-family:"Bree Serif",serif;color:#b92825;text-shadow:2px 2px 0 #f7d77c,4px 4px 0 #241711}
+.card{border:3px solid #241711;border-radius:28px;background:rgba(255,248,232,.95);box-shadow:0 14px 35px rgba(52,25,10,.2)}
+.btn{border:3px solid #241711;border-radius:15px;box-shadow:0 4px 0 #241711;font-weight:900}
+.btn.primary{background:#b92825}.btn.green{background:#0d6b4b}
+.stage{border:4px solid #241711;border-radius:30px;background:linear-gradient(135deg,#fff8e8,#f3d18f);box-shadow:inset 0 0 0 7px #e9b83f}
+.drawn-card{border:7px solid #b92825;border-radius:25px;box-shadow:12px 12px 0 #241711;background:#fffaf0;animation:deal .35s ease}
+.drawn-card .emoji{font-size:95px}.drawn-card .name{font-family:"Bree Serif",serif;color:#b92825}
+.tile{border:3px solid #241711;border-radius:16px;background:#fffaf0;box-shadow:0 4px 0 #9a6a43}
+.tile.marked{background:#f5c94b;box-shadow:0 4px 0 #b92825}
+.tile .emoji{font-size:32px;display:block}.tile .name{font-family:"Bree Serif",serif;color:#b92825}
+@keyframes deal{from{transform:translateY(-55px) rotate(-5deg);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
@@ -57,8 +72,8 @@ input{border:2px solid var(--ink);border-radius:14px;padding:12px 14px;width:100
         </div>
         <div>
           <div class="status">Jugadores conectados: <b id="playerCount">0</b></div>
-          <div id="players"></div>
-          <div class="status">Cartas restantes: <b id="remaining">36</b></div>
+          <div id="players"></div><div class="status"><b>📜 Cartas cantadas</b><div id="history" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div></div>
+          <div class="status">Cartas restantes: <b id="remaining">54</b></div>
           <p style="font-size:13px">Cada vez que sacas una carta, todos los celulares reciben la misma carta. Cada jugador decide si la marca en su tablero.</p>
         </div>
       </div>
@@ -97,44 +112,19 @@ input{border:2px solid var(--ink);border-radius:14px;padding:12px 14px;width:100
 <div id="winner" class="winner hidden"><div class="box"><div class="emoji">🏆</div><h2>¡LOTERÍA!</h2><p id="winnerText"></p><button class="btn primary" onclick="closeWinner()">Seguir jugando</button></div></div>
 
 <script>
-const CARDS=[
-["El Prompt","🧠","El que pide poquito y espera que la IA adivine todo."],
-["El ChatGPT","🤖","Tu copiloto para pensar, crear y resolver."],
-["La Skill","⚡","Una capacidad especializada para hacer más que chatear."],
-["El Canvas","🎨","Donde una idea empieza a tomar forma."],
-["El Gemini","🔮","La otra mente del juego."],
-["El Resumidor","📚","De 30 páginas a lo que realmente importa."],
-["El Analista","📊","Yo veo patrones donde tú ves una Excel infernal."],
-["El Creativo","💡","Dame 20 ideas. No, otras 20."],
-["El Traductor","🌎","Del corporativo al humano."],
-["El Correo","✉️","El mensaje que llevas 40 minutos evitando."],
-["La Presentación","🖥️","Mañana es la junta. Hoy es el día."],
-["El Documento","📄","Ese archivo que nadie quiere leer completo."],
-["El Excel Infernal","🫠","Filas, columnas y sufrimiento."],
-["El Insight","🔎","La respuesta escondida entre los datos."],
-["La Alucinación","💀","Yo tampoco sé de dónde salió ese dato."],
-["El Urgente","🚨","Lo necesito para hace 20 minutos."],
-["El Copiar y Pegar","📋","Lo mandé tal cual. ¿Qué podría salir mal?" ],
-["El WOW","🤯","¿La IA puede hacer eso?" ],
-["El Prompt Mágico","🪄","Actúa como experto… y cruzamos los dedos."],
-["El Contexto","🧩","Cuéntame un poco más antes de que improvise."],
-["La Idea","✨","Ya la tengo. Ahora ayúdame a aterrizarla."],
-["El Investigador","🕵️","Déjame encontrar qué está pasando."],
-["El Programador","💻","No necesitas saber código para pedirme código."],
-["El Checklist","✅","Que no se nos olvide nada."],
-["El Brainstorm","🌪️","Una idea lleva a otra y otra y otra…"],
-["El Planificador","🗓️","Hagamos que esto deje de vivir en tu cabeza."],
-["El Editor","✂️","Menos palabras. Más punch."],
-["El Jefe","🧑‍💼","“Hazlo más estratégico.”"],
-["La Junta","🎙️","Dos horas que pudieron ser un resumen."],
-["El Deadline","⏰","No era para hoy… hasta que fue para hoy."],
-["La Automatización","⚙️","Hazlo una vez. Después deja que fluya."],
-["El Experimento","🧪","Probemos y vemos qué pasa."],
-["La Pregunta","❓","No hay preguntas tontas. Hay prompts flojitos."],
-["El Filtro","🧹","Quédate con lo que sí importa."],
-["El Storyteller","📖","Los datos también necesitan una historia."],
-["El Resultado","🏆","Cuando la IA deja de ser truco y se vuelve herramienta."]
-];
+let audioCtx;
+function tone(freq,dur=.12,type="sine"){
+ try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+ const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+ o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+ g.gain.exponentialRampToValueAtTime(.18,audioCtx.currentTime+.02);
+ g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);
+ o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur+.02)}catch(e){}
+}
+function fanfare(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.18,"triangle"),i*90))}
+function repeatSound(){fanfare()}
+
+const CARDS=[["El Gallo", "🐓", "El que canta primero. Hoy canta: ¡LOTERÍA!"], ["El Diablito", "😈", "Cuando el prompt se te va de las manos."], ["La Dama", "👩‍💼", "“Hazlo más estratégico, por favor.”"], ["El Catrín", "🤵", "Siempre impecable, incluso en una junta de tres horas."], ["El Paraguas", "☂️", "Para cubrirte cuando la IA se pone creativa."], ["La Sirena", "🧜‍♀️", "Te llama cuando necesitas una buena idea."], ["La Escalera", "🪜", "Subiendo de pregunta simple a superpoder."], ["La Botella", "🍾", "Para celebrar cuando funciona a la primera."], ["El Barril", "🛢️", "Aquí guardamos todo el contexto."], ["El Árbol", "🌳", "Ideas que empiezan pequeñas y terminan enormes."], ["El Melón", "🍈", "No todo lo que dice la IA es fruta de buena cosecha."], ["El Valiente", "🦸", "El que se atreve a probar una herramienta nueva."], ["El Gorrito", "🎩", "Ponte creativo."], ["La Muerte", "💀", "La respuesta que definitivamente hay que verificar."], ["La Pera", "🍐", "Simple, directa y lista para usar."], ["La Bandera", "🇲🇽", "Orgullo nacional, prompts internacionales."], ["El Bandolón", "🎸", "Cuando la IA necesita un poco de ritmo."], ["El Violoncello", "🎻", "Afinando una idea hasta que suene bien."], ["La Garza", "🪿", "Elegancia hasta para analizar una tabla."], ["El Pájaro", "🐦", "Vuela de una idea a otra."], ["La Mano", "✋", "Tú decides. La IA ayuda."], ["La Bota", "🥾", "Pisa el acelerador."], ["La Luna", "🌙", "La idea que aparece justo antes de dormir."], ["El Cotorro", "🦜", "Habla mucho. Tú decides qué conservar."], ["El Borracho", "🥴", "Cuando el resultado no tiene ni pies ni cabeza."], ["El Corazón", "❤️", "Ponle intención a lo que quieres crear."], ["La Sandía", "🍉", "Grande, jugosa y con muchas capas."], ["El Tambor", "🥁", "Redoble de tambores… llegó la siguiente carta."], ["El Camarón", "🦐", "A veces la solución viene de donde menos esperas."], ["Las Jaras", "🏹", "Apunta bien tu petición."], ["El Músico", "🎷", "Convierte información en una historia."], ["La Araña", "🕷️", "Conecta ideas que estaban separadas."], ["El Soldado", "🪖", "Listo para ejecutar."], ["La Estrella", "⭐", "El resultado que sí quieres enseñar."], ["El Cazo", "🥘", "Mezcla ingredientes, instrucciones y contexto."], ["El Mundo", "🌎", "Información, ideas y herramientas en un mismo lugar."], ["El Apache", "🪶", "Explorador de nuevas posibilidades."], ["El Nopal", "🌵", "Mucho contexto, pocas excusas."], ["El Alacrán", "🦂", "Cuidado con los datos inventados."], ["La Rosa", "🌹", "Haz que la idea se vea tan bien como suena."], ["La Calavera", "💀", "Verifica antes de confiar."], ["La Campana", "🔔", "Atención: salió una carta importante."], ["El Cantarito", "🏺", "Guarda lo bueno y vuelve a usarlo."], ["El Venado", "🦌", "Agilidad para encontrar el camino."], ["El Sol", "☀️", "Cuando por fin todo hace sentido."], ["La Corona", "👑", "El resultado que merece presentación."], ["La Maceta", "🪴", "Una idea necesita espacio para crecer."], ["El Pescado", "🐟", "Hay que saber pescar el insight."], ["La Palma", "🌴", "Respira. Piensa. Prompt."], ["La Escoba", "🧹", "Limpia el ruido y quédate con lo importante."], ["El Cohete", "🚀", "Cuando una idea pasa de cero a cien."], ["La IA", "🤖", "No es magia. Es una herramienta."], ["La Skill", "⚡", "Un superpoder especializado para trabajar mejor."], ["El Canvas", "🎨", "Donde una idea empieza a tomar forma."]];
 
 let state={peer:null,conn:null,room:null,board:[],drawn:[],players:{},name:"",isHost:false};
 
@@ -166,7 +156,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":
 function drawNext(){
  if(state.drawn.length>=CARDS.length)return toast("Ya no quedan cartas.");
  const idx=shuffle(CARDS.map((_,i)=>i).filter(i=>!state.drawn.includes(i)))[0];state.drawn.push(idx);
- renderBig(CARDS[idx]);document.getElementById("remaining").textContent=CARDS.length-state.drawn.length;
+ renderBig(CARDS[idx]);document.getElementById("remaining").textContent=CARDS.length-state.drawn.length;document.getElementById("history").innerHTML=state.drawn.slice().reverse().map(i=>`<span style="background:#241711;color:white;padding:6px 8px;border-radius:9px;font-size:11px;font-weight:900">${CARDS[i][1]} ${CARDS[i][0]}</span>`).join("");
  broadcast({type:"draw",idx});
 }
 function renderBig(card){document.getElementById("drawCard").innerHTML=`<div class="emoji">${card[1]}</div><div class="bigname">${card[0]}</div><div class="phrase">${card[2]}</div>`}
